@@ -1,0 +1,4 @@
+<div class="seg">
+  <a href="?{% if extra %}{{ extra }}&{% endif %}business=" class="{% if not business_code %}on{% endif %}">All</a>
+  {% for b in businesses %}<a href="?{% if extra %}{{ extra }}&{% endif %}business={{ b.code }}" class="{% if business_code == b.code %}on{% endif %}">{{ b.name|cut:"Christie's " }}</a>{% endfor %}
+</div>

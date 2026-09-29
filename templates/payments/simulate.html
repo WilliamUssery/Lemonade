@@ -1,0 +1,19 @@
+{% extends "portal/base_public.html" %}
+{% block title %}Test checkout{% endblock %}
+{% block content %}
+<div class="paycard">
+  <div class="msg info" style="margin-bottom:16px"><b>Test mode.</b> Stand-in for Square's hosted checkout. Add a Square Sandbox token in <span class="mono">.env</span> to use the real one.</div>
+  <div class="muted" style="font-size:12px">{{ invoice.business.name }} · Square location</div>
+  <h2 style="font-size:20px;margin:4px 0 14px">Invoice {{ invoice.number }}</h2>
+  <div class="lines">
+    <div><span>Invoice total</span><span>${{ invoice.subtotal }}</span></div>
+    <div><span>Card surcharge (3.5%)</span><span>${{ payment.fee }}</span></div>
+    <div style="font-weight:800"><span>Charge</span><span>${{ payment.amount }}</span></div>
+  </div>
+  <div class="field" style="margin-top:14px"><label>Card number</label><input type="text" value="4111 1111 1111 1111" disabled></div>
+  <form method="post" class="row" style="flex-wrap:nowrap">{% csrf_token %}
+    <button class="btn block" name="cancel" value="1">Cancel</button>
+    <button class="btn pri block" name="approve" value="1">Pay ${{ payment.amount }}</button>
+  </form>
+</div>
+{% endblock %}

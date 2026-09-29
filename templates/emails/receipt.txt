@@ -1,0 +1,11 @@
+{% autoescape off %}Hi {{ invoice.client.first_name }},
+
+Thanks! We received your payment for invoice {{ invoice.number }}.
+
+  Business: {{ invoice.business.name }}
+  Paid:     ${{ payment.amount|default:invoice.subtotal }}{% if payment %} via {{ payment.get_method_display }}{% endif %}
+  Date:     {{ invoice.paid_at|date:"M j, Y" }}
+
+View your receipt: {{ pay_url }}
+
+{{ invoice.business.name }}{% endautoescape %}

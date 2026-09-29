@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Invoices{% endblock %}
+{% block content %}
+<div class="top">
+  <div><div class="crumb">Both businesses</div><h1>Invoices</h1></div>
+  <a class="btn pri" href="{% url 'billing:create' %}">+ New invoice</a>
+</div>
+<div class="card">
+  <form class="search" method="get" style="margin-bottom:12px">
+    <input type="search" name="q" value="{{ q }}" placeholder="Invoice # or client…">
+    <select name="business" onchange="this.form.submit()">
+      <option value="">All businesses</option>
+      {% for b in businesses %}<option value="{{ b.code }}" {% if business_code == b.code %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+    </select>
+    <select name="status" onchange="this.form.submit()">
+      <option value="">Any status</option>
+      {% for value, label in statuses %}<option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <button class="btn">Filter</button>
+  </form>
+  <table>
+    <tr><th>Invoice</th><th>Client</th><th>Business</th><th>Issued</th><th>Due</th><th class="r">Total</th><th>Status</th></tr>
+    {% for inv in invoices %}
+    <tr class="link" onclick="location='{{ inv.get_absolute_url }}'">
+      <td class="mono">{{ inv.number }}</td>
+      <td><a class="name" href="{{ inv.client.get_absolute_url }}" onclick="event.stopPropagation()">{{ inv.client.full_name }}</a></td>
+      <td>{% include "partials/biz_pill.html" with b=inv.business %}</td>
+      <td>{{ inv.issue_date|date:"M d" }}</td>
+      <td>{{ inv.due_date|date:"M d" }}</td>
+      <td class="r">${{ inv.subtotal|intcomma }}</td>
+      <td>{% include "partials/status_pill.html" with s=inv.status label=inv.get_status_display %}</td>
+    </tr>
+    {% empty %}<tr><td colspan="7" class="empty">No invoices match.</td></tr>{% endfor %}
+  </table>
+</div>
+{% endblock %}
