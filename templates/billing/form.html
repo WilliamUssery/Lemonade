@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<form method="post" id="invoice-form">{% csrf_token %}
+<div class="top">
+  <div><div class="crumb"><a href="{% url 'billing:list' %}">Invoices</a> / {% if invoice %}{{ invoice.number }}{% else %}New{% endif %}</div><h1>{{ title }}</h1></div>
+  <span class="pill p-draft" style="font-size:13px;padding:5px 12px">Draft</span>
+</div>
+
+{% if form.non_field_errors or formset.non_form_errors %}
+<div class="msgs">{% for e in form.non_field_errors %}<div class="msg error">{{ e }}</div>{% endfor %}{% for e in formset.non_form_errors %}<div class="msg error">{{ e }}</div>{% endfor %}</div>
+{% endif %}
+
+<div class="grid split" style="grid-template-columns:1fr 330px">
+  <div class="grid" style="align-content:start">
+    <div class="card">
+      <h3>Details</h3>
+      <div class="form-grid">
+        <div class="field"><label for="id_client">Client</label>{{ form.client }}{{ form.client.errors }}</div>
+        <div class="field checks"><label>Business</label>{{ form.business }}{{ form.business.errors }}</div>
+        <div class="field"><label>Invoice number</label>
+          <input type="text" class="mono" id="inv-number" value="{% if invoice %}{{ invoice.number }}{% else %}Assigned on save{% endif %}" disabled></div>
+        <div class="form-grid" style="gap:0 10px">
+          <div class="field"><label for="id_issue_date">Issue date</label>{{ form.issue_date }}{{ form.issue_date.errors }}</div>
+          <div class="field"><label for="id_due_date">Due date</label>{{ form.due_date }}{{ form.due_date.errors }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Line items <small>Prices are copied at time of billing</small></h3>
+      {{ formset.management_form }}
+      <table class="items">
+        <thead><tr><th style="width:38%">Service</th><th>Description</th><th style="width:90px">Qty</th><th style="width:120px">Unit price</th><th class="r" style="width:90px">Amount</th><th></th></tr></thead>
+        <tbody id="item-rows">
+        {% for f in formset %}
+          <tr class="item-row">
+            <td>{{ f.service }}{{ f.service.errors }}{% for e in f.non_field_errors %}<div class="errorlist">{{ e }}</div>{% endfor %}</td>
+            <td>{{ f.description }}</td>
+            <td>{{ f.quantity }}{{ f.quantity.errors }}</td>
+            <td>{{ f.unit_price }}{{ f.unit_price.errors }}</td>
+            <td class="r amount"><b>$0.00</b></td>
+            <td>{{ f.DELETE.as_hidden }}<button type="button" class="remove-row" title="Remove">✕</button></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <template id="row-template">
+        <tr class="item-row">
+          <td>{{ formset.empty_form.service }}</td><td>{{ formset.empty_form.description }}</td>
+          <td>{{ formset.empty_form.quantity }}</td><td>{{ formset.empty_form.unit_price }}</td>
+          <td class="r amount"><b>$0.00</b></td>
+          <td>{{ formset.empty_form.DELETE.as_hidden }}<button type="button" class="remove-row" title="Remove">✕</button></td>
+        </tr>
+      </template>
+      <button type="button" class="add-row" id="add-row">+ Add line item</button>
+    </div>
+
+    <div class="card">
+      <h3>Message to client <small>optional</small></h3>
+      {{ form.message }}
+    </div>
+  </div>
+
+  <div class="grid" style="align-content:start">
+    <div class="card">
+      <h3>Summary</h3>
+      <div class="sum-row"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+      <div class="sum-row muted"><span>Card surcharge (3.5%)<br><small>only if paid by card</small></span><span id="fee">+$0.00</span></div>
+      <div class="sum-row sum-total"><span>Total due</span><span id="total">$0.00</span></div>
+    </div>
+    <div class="card">
+      <h3>Payment methods <small id="methods-biz"></small></h3>
+      <div id="methods" style="display:grid;gap:8px;font-size:13.5px"></div>
+      <div class="muted" style="font-size:12px;margin-top:10px">Change these in Settings.</div>
+    </div>
+    <div class="card" style="background:#F9FAFB">
+      <div class="muted" style="font-size:12.5px;margin-bottom:12px">“Save &amp; send” emails a secure pay link to the client.</div>
+      <div class="row" style="flex-wrap:nowrap">
+        <button class="btn block" name="save" value="1">Save draft</button>
+        <button class="btn pri block" name="send" value="1">Save &amp; send</button>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+
+{{ catalog|json_script:"catalog" }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+  const catalog = JSON.parse(document.getElementById("catalog").textContent);
+  const clientLinks = catalog.clientLinks;
+  const rows = document.getElementById("item-rows");
+  const total = document.getElementById("id_items-TOTAL_FORMS");
+  const fmt = n => "$" + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const bizInputs = [...document.querySelectorAll('input[name="business"]')];
+  const clientSel = document.getElementById("id_client");
+
+  const currentBiz = () => {
+    const checked = bizInputs.find(i => i.checked);
+    return checked ? checked.value : null;
+  };
+
+  // Only show services that belong to the selected business.
+  function filterServices() {
+    const biz = currentBiz();
+    rows.querySelectorAll('select[name$="-service"]').forEach(sel => {
+      [...sel.options].forEach(opt => {
+        if (!opt.value) return;
+        const ok = !biz || String(catalog.services[opt.value]?.business) === biz;
+        opt.hidden = !ok; opt.disabled = !ok;
+        if (!ok && opt.selected) sel.value = "";
+      });
+    });
+  }
+
+  // Only allow businesses the selected client is linked to.
+  function filterBusinesses() {
+    const allowed = (clientLinks[clientSel.value] || []).map(String);
+    bizInputs.forEach(i => {
+      const ok = !clientSel.value || allowed.includes(i.value);
+      i.disabled = i.disabled || false;
+      i.closest("label").style.opacity = ok ? 1 : .35;
+      if (!ok && i.checked && !i.hasAttribute("disabled")) i.checked = false;
+    });
+    if (!currentBiz() && allowed.length === 1) {
+      const only = bizInputs.find(i => i.value === allowed[0]);
+      if (only) only.checked = true;
+    }
+  }
+
+  function renderMethods() {
+    const b = catalog.businesses[currentBiz()];
+    document.getElementById("methods-biz").textContent = b ? b.name.replace("Christie's ", "") : "";
+    document.getElementById("methods").innerHTML = b
+      ? b.methods.map(m => `<div>✓ ${m}</div>`).join("")
+      : '<div class="muted">Pick a business</div>';
+  }
+
+  function recalc() {
+    let subtotal = 0;
+    rows.querySelectorAll(".item-row").forEach(row => {
+      const del = row.querySelector('input[name$="-DELETE"]');
+      if (del && del.value === "on") return;
+      const svc = row.querySelector('select[name$="-service"]').value;
+      const qty = parseFloat(row.querySelector('input[name$="-quantity"]').value) || 0;
+      const priceInput = row.querySelector('input[name$="-unit_price"]');
+      const rate = catalog.services[svc] ? parseFloat(catalog.services[svc].rate) : 0;
+      priceInput.placeholder = catalog.services[svc] ? catalog.services[svc].rate : "0.00";
+      const price = priceInput.value !== "" ? parseFloat(priceInput.value) : rate;
+      const amount = Math.round(qty * price * 100) / 100;
+      row.querySelector(".amount").innerHTML = `<b>${fmt(amount)}</b>`;
+      subtotal += amount;
+    });
+    const fee = Math.round(subtotal * 0.035 * 100) / 100;
+    document.getElementById("subtotal").textContent = fmt(subtotal);
+    document.getElementById("fee").textContent = "+" + fmt(fee);
+    document.getElementById("total").textContent = fmt(subtotal);
+  }
+
+  document.getElementById("add-row").addEventListener("click", () => {
+    const html = document.getElementById("row-template").innerHTML.replace(/__prefix__/g, total.value);
+    rows.insertAdjacentHTML("beforeend", html);
+    total.value = parseInt(total.value) + 1;
+    filterServices(); recalc();
+  });
+
+  rows.addEventListener("click", e => {
+    if (!e.target.classList.contains("remove-row")) return;
+    const row = e.target.closest(".item-row");
+    const visible = [...rows.querySelectorAll(".item-row")].filter(r => r.style.display !== "none");
+    if (visible.length === 1) return;  // keep at least one row
+    row.querySelector('input[name$="-DELETE"]').value = "on";
+    row.style.display = "none";
+    recalc();
+  });
+
+  rows.addEventListener("input", recalc);
+  rows.addEventListener("change", recalc);
+  bizInputs.forEach(i => i.addEventListener("change", () => { filterServices(); renderMethods(); recalc(); }));
+  clientSel.addEventListener("change", () => { filterBusinesses(); filterServices(); renderMethods(); });
+
+  filterBusinesses(); filterServices(); renderMethods(); recalc();
+})();
+</script>
+{% endblock %}

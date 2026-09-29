@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}{{ client.full_name }}{% endblock %}
+{% block content %}
+<div class="top">
+  <div><div class="crumb"><a href="{% url 'clients:list' %}">Clients</a> / {{ client.full_name }}</div><h1>Client profile</h1></div>
+  <div class="row">
+    <a class="btn" href="{% url 'clients:edit' client.pk %}">Edit</a>
+    <a class="btn pri" href="{% url 'billing:create' %}?client={{ client.pk }}">+ New invoice</a>
+  </div>
+</div>
+
+<div class="grid split" style="grid-template-columns:320px 1fr">
+  <div class="grid" style="align-content:start">
+    <div class="card" style="text-align:center;padding:22px 16px">
+      <span class="av" style="width:72px;height:72px;background:#3B82F6;font-size:26px;margin-bottom:12px">{{ client.initials }}</span>
+      <div style="font-size:19px;font-weight:700;color:var(--navy)">{{ client.full_name }}</div>
+      <div class="muted" style="font-size:13px;margin-top:4px">Client since {{ client.created_at|date:"F Y" }}</div>
+      <div class="row" style="justify-content:center;margin-top:12px">{% for b in businesses %}{% include "partials/biz_pill.html" %}{% endfor %}</div>
+      <div style="text-align:left;font-size:13px;margin-top:18px;display:grid;gap:9px">
+        <div><span class="muted">Email</span><br><a href="mailto:{{ client.email }}">{{ client.email }}</a></div>
+        <div><span class="muted">Phone</span><br>{{ client.phone|default:"—" }}</div>
+        <div><span class="muted">Address</span><br>{{ client.address|default:"—" }}</div>
+      </div>
+    </div>
+    {% if client.notes %}<div class="card"><h3>Notes</h3><div style="font-size:13px;color:#4B5563;white-space:pre-line">{{ client.notes }}</div></div>{% endif %}
+  </div>
+
+  <div class="grid" style="align-content:start">
+    <div class="kpis" style="margin:0">
+      <div class="card kpi"><div class="l">Lifetime billed</div><div class="v">${{ lifetime_billed|floatformat:2|intcomma }}</div></div>
+      <div class="card kpi"><div class="l">Open balance</div><div class="v {% if open_balance %}warn{% endif %}">${{ open_balance|floatformat:2|intcomma }}</div></div>
+      <div class="card kpi"><div class="l">Preferred method</div><div class="v" style="font-size:20px;margin-top:10px">{{ preferred_method }}</div></div>
+    </div>
+    <div class="card">
+      <h3>Invoice history
+        <div class="seg">
+          <a href="?" class="{% if not business_code %}on{% endif %}">All</a>
+          {% for b in businesses %}<a href="?business={{ b.code }}" class="{% if business_code == b.code %}on{% endif %}">{{ b.name|cut:"Christie's " }}</a>{% endfor %}
+        </div>
+      </h3>
+      <table>
+        <tr><th>Invoice</th><th>Business</th><th>Date</th><th class="r">Total</th><th>Method</th><th>Status</th></tr>
+        {% for inv in invoices %}
+        <tr class="link" onclick="location='{{ inv.get_absolute_url }}'">
+          <td class="mono">{{ inv.number }}</td>
+          <td>{% include "partials/biz_pill.html" with b=inv.business %}</td>
+          <td>{{ inv.issue_date|date:"M d, Y" }}</td>
+          <td class="r">${{ inv.subtotal|intcomma }}</td>
+          <td>{% for p in inv.payments.all %}{% if p.status == "confirmed" %}{{ p.get_method_display|cut:" (Square)" }}{% endif %}{% empty %}—{% endfor %}</td>
+          <td>{% include "partials/status_pill.html" with s=inv.status label=inv.get_status_display %}</td>
+        </tr>
+        {% empty %}<tr><td colspan="6" class="empty">No invoices yet.</td></tr>{% endfor %}
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

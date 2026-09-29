@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="top">
+  <div><div class="crumb"><a href="{% url 'clients:list' %}">Clients</a> / {% if client %}{{ client.full_name }}{% else %}New{% endif %}</div><h1>{{ title }}</h1></div>
+</div>
+<form method="post" class="card" style="max-width:720px">{% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="form-grid">
+    <div class="field"><label for="{{ form.first_name.id_for_label }}">First name</label>{{ form.first_name }}{{ form.first_name.errors }}</div>
+    <div class="field"><label for="{{ form.last_name.id_for_label }}">Last name</label>{{ form.last_name }}{{ form.last_name.errors }}</div>
+    <div class="field"><label for="{{ form.email.id_for_label }}">Email</label>{{ form.email }}{{ form.email.errors }}</div>
+    <div class="field"><label for="{{ form.phone.id_for_label }}">Phone</label>{{ form.phone }}{{ form.phone.errors }}</div>
+  </div>
+  <div class="field"><label for="{{ form.address.id_for_label }}">Address</label>{{ form.address }}{{ form.address.errors }}</div>
+  <div class="field checks"><label>Businesses</label>{{ form.business_links }}{{ form.business_links.errors }}<div class="help">{{ form.business_links.help_text }}</div></div>
+  <div class="field"><label for="{{ form.notes.id_for_label }}">Notes</label>{{ form.notes }}{{ form.notes.errors }}</div>
+  <div class="row" style="justify-content:flex-end">
+    <a class="btn" href="{% if client %}{{ client.get_absolute_url }}{% else %}{% url 'clients:list' %}{% endif %}">Cancel</a>
+    <button class="btn pri">Save client</button>
+  </div>
+</form>
+{% endblock %}

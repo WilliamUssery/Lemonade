@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Clients{% endblock %}
+{% block content %}
+<div class="top">
+  <div><div class="crumb">One database for both businesses</div><h1>Clients</h1></div>
+  <a class="btn pri" href="{% url 'clients:create' %}">+ New client</a>
+</div>
+<div class="card">
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <form class="search" method="get">
+      <input type="search" name="q" value="{{ q }}" placeholder="Search name, email or phone…" autofocus>
+      <input type="hidden" name="business" value="{{ business_code }}">
+      <button class="btn">Search</button>
+    </form>
+    {% include "partials/biz_filter.html" with extra="q="|add:q %}
+  </div>
+  <table>
+    <tr><th>Name</th><th>Email</th><th>Phone</th><th>Businesses</th><th class="r">Invoices</th></tr>
+    {% for c in clients %}
+    <tr class="link" onclick="location='{{ c.get_absolute_url }}'">
+      <td><span class="row"><span class="av" style="width:30px;height:30px;background:#3B82F6;font-size:12px">{{ c.initials }}</span><a class="name" href="{{ c.get_absolute_url }}">{{ c.full_name }}</a></span></td>
+      <td>{{ c.email }}</td>
+      <td>{{ c.phone|default:"—" }}</td>
+      <td>{% for b in c.businesses.all %}{% include "partials/biz_pill.html" %} {% endfor %}</td>
+      <td class="r">{{ c.invoice_count }}</td>
+    </tr>
+    {% empty %}<tr><td colspan="5" class="empty">No clients match.</td></tr>{% endfor %}
+  </table>
+</div>
+{% endblock %}

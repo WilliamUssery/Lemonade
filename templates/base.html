@@ -1,0 +1,40 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}DualLedger{% endblock %} · DualLedger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+{% block body %}
+<div class="shell">
+  <aside class="side">
+    <a class="logo" href="{% url 'dashboard:index' %}"><i class="mk"></i>DualLedger</a>
+    {% with ns=request.resolver_match.namespace %}
+    <nav class="nav">
+      <a href="{% url 'dashboard:index' %}" class="{% if ns == 'dashboard' %}on{% endif %}"><i class="ic"></i>Dashboard</a>
+      <a href="{% url 'clients:list' %}" class="{% if ns == 'clients' %}on{% endif %}"><i class="ic"></i>Clients</a>
+      <a href="{% url 'billing:list' %}" class="{% if ns == 'billing' %}on{% endif %}"><i class="ic"></i>Invoices</a>
+      <a href="{% url 'payments:list' %}" class="{% if ns == 'payments' %}on{% endif %}"><i class="ic"></i>Payments</a>
+      <a href="{% url 'admin:billing_service_changelist' %}"><i class="ic"></i>Services</a>
+      <a href="{% url 'admin:billing_business_changelist' %}"><i class="ic"></i>Settings</a>
+    </nav>
+    {% endwith %}
+    <div class="user">
+      <span class="av" style="width:32px;height:32px;background:#E76F51;font-size:13px">{{ user.first_name|first|default:user.username|first|upper }}{{ user.last_name|first|upper }}</span>
+      <span>{{ user.get_full_name|default:user.username }}</span>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button title="Log out">Log out</button></form>
+    </div>
+  </aside>
+  <main class="main">
+    {% if messages %}<div class="msgs">{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}{% endblock %}
+</body>
+</html>

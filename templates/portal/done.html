@@ -1,0 +1,21 @@
+{% extends "portal/base_public.html" %}
+{% block title %}{{ invoice.number }} · {{ invoice.business.name }}{% endblock %}
+{% block content %}
+<div class="paycard" style="text-align:center">
+  {% include "portal/_header.html" %}
+  {% if invoice.status == "paid" %}
+    <div class="big-check" style="background:var(--ok);margin-top:24px">✓</div>
+    <h2 style="font-size:21px">Payment received</h2>
+    <p class="muted">Thanks, {{ invoice.client.first_name }}! A receipt was emailed to {{ invoice.client.email }}.</p>
+    {% if payment %}<p style="font-weight:700">${{ payment.amount }} · {{ payment.get_method_display }}</p>{% endif %}
+  {% elif payment and payment.status == "pending" and payment.is_manual %}
+    <div class="big-check" style="background:var(--warn);margin-top:24px">⏳</div>
+    <h2 style="font-size:21px">Thanks — we'll confirm it</h2>
+    <p class="muted">We'll look for your {{ payment.get_method_display }} payment of <b>${{ payment.amount }}</b> with memo <span class="mono">{{ invoice.number }}</span> and email your receipt once it's confirmed.</p>
+  {% else %}
+    <h2 style="font-size:21px;margin-top:24px">Payment not completed</h2>
+    <p class="muted">No money was taken. You can try again.</p>
+  {% endif %}
+  <a class="btn" style="margin-top:8px" href="{{ invoice.get_pay_url }}">Back to invoice</a>
+</div>
+{% endblock %}

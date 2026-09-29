@@ -1,0 +1,16 @@
+{% autoescape off %}Hi {{ invoice.client.first_name }},
+
+{{ invoice.business.name }} sent you invoice {{ invoice.number }}.
+
+{% for item in invoice.items.all %}  {{ item.description }} x {{ item.quantity|floatformat:"-2" }} ... ${{ item.amount }}
+{% endfor %}
+  Amount due: ${{ invoice.subtotal }}
+  Due date:   {{ invoice.due_date|date:"M j, Y" }}
+{% if invoice.message %}
+{{ invoice.message }}
+{% endif %}
+Pay now (no login needed):
+{{ pay_url }}
+
+Thank you!
+{{ invoice.business.name }}{% endautoescape %}

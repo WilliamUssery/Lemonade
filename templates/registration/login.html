@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block body %}
+<div class="login">
+  <div class="logo" style="color:var(--navy);justify-content:center;margin:0 0 18px"><i class="mk"></i>DualLedger</div>
+  <div class="card" style="padding:24px">
+    <h1 style="font-size:20px;margin-bottom:4px">Welcome back</h1>
+    <p class="muted" style="margin:0 0 18px">Staff sign-in for Christie's businesses.</p>
+    {% if form.errors %}<div class="msg error" style="margin-bottom:14px">Username or password didn't match.</div>{% endif %}
+    <form method="post">{% csrf_token %}
+      <div class="field"><label for="id_username">Username</label>{{ form.username }}</div>
+      <div class="field"><label for="id_password">Password</label>{{ form.password }}</div>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="btn pri block" type="submit">Log in</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
