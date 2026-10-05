@@ -10,14 +10,12 @@
   <div class="row">
     <div class="seg">
       <a href="?month={{ month|date:'Y-m' }}" class="{% if not business_code %}on{% endif %}">All</a>
-      {% for b in businesses %}<a href="?month={{ month|date:'Y-m' }}&business={{ b.code }}"
-        class="{% if business_code == b.code %}on{% endif %}">{{ b.name|cut:"Christie's " }}</a>{% endfor %}
+      {% for b in businesses %}<a href="?month={{ month|date:'Y-m' }}&business={{ b.code }}" class="{% if business_code == b.code %}on{% endif %}">{{ b.name|cut:"Christie's " }}</a>{% endfor %}
     </div>
     <form method="get">
       <input type="hidden" name="business" value="{{ business_code }}">
       <select name="month" onchange="this.form.submit()" style="width:auto">
-        {% for m in months %}<option value="{{ m|date:'Y-m' }}" {% if m|date:'Y-m'==month|date:'Y-m' %}selected{% endif
-          %}>{{ m|date:"M Y" }}</option>{% endfor %}
+        {% for m in months %}<option value="{{ m|date:'Y-m' }}" {% if m|date:'Y-m' == month|date:'Y-m' %}selected{% endif %}>{{ m|date:"M Y" }}</option>{% endfor %}
       </select>
     </form>
     <a class="btn pri" href="{% url 'billing:create' %}">+ New invoice</a>
@@ -25,55 +23,28 @@
 </div>
 
 <div class="kpis">
-  <div class="card kpi">
-    <div class="l">Collected this month</div>
-    <div class="v">${{ collected|floatformat:2|intcomma }}</div>
-    <div class="d">{% if change is not None %}<span class="{% if change >= 0 %}up{% else %}down{% endif %}">{% if change
-        >= 0 %}▲{% else %}▼{% endif %} {{ change|stringformat:"d"|cut:"-" }}%</span> vs. last month{% else %}No prior
-      month data{% endif %}</div>
-  </div>
-  <div class="card kpi">
-    <div class="l">Outstanding</div>
-    <div class="v">${{ outstanding|floatformat:2|intcomma }}</div>
-    <div class="d">{{ open_count }} open invoice{{ open_count|pluralize }}{% if overdue_count %} · <span class="down">{{
-        overdue_count }} overdue (${{ overdue_total|floatformat:2|intcomma }})</span>{% endif %}</div>
-  </div>
-  <div class="card kpi">
-    <div class="l">Invoices sent</div>
-    <div class="v">{{ sent_count }}</div>
-    <div class="d">{% for row in sent_breakdown %}{{ row.count }} {{ row.business.name|cut:"Christie's "|lower }}{% if
-      not forloop.last %} · {% endif %}{% endfor %}</div>
-  </div>
-  <div class="card kpi {% if pending %}attn{% endif %}">
-    <div class="l">Awaiting confirmation</div>
-    <div class="v {% if pending %}warn{% endif %}">{{ pending|length }}</div>
-    <div class="d">Zelle / Venmo / Chime</div>
-  </div>
+  <div class="card kpi"><div class="l">Collected this month</div><div class="v">${{ collected|floatformat:2|intcomma }}</div>
+    <div class="d">{% if change is not None %}<span class="{% if change >= 0 %}up{% else %}down{% endif %}">{% if change >= 0 %}▲{% else %}▼{% endif %} {{ change|stringformat:"d"|cut:"-" }}%</span> vs. last month{% else %}No prior month data{% endif %}</div></div>
+  <div class="card kpi"><div class="l">Outstanding</div><div class="v">${{ outstanding|floatformat:2|intcomma }}</div><div class="d">{{ open_count }} open invoice{{ open_count|pluralize }}{% if overdue_count %} · <span class="down">{{ overdue_count }} overdue (${{ overdue_total|floatformat:2|intcomma }})</span>{% endif %}</div></div>
+  <div class="card kpi"><div class="l">Invoices sent</div><div class="v">{{ sent_count }}</div>
+    <div class="d">{% for row in sent_breakdown %}{{ row.count }} {{ row.business.name|cut:"Christie's "|lower }}{% if not forloop.last %} · {% endif %}{% endfor %}</div></div>
+  <div class="card kpi {% if pending %}attn{% endif %}"><div class="l">Awaiting confirmation</div><div class="v {% if pending %}warn{% endif %}">{{ pending|length }}</div><div class="d">Zelle / Venmo / Chime</div></div>
 </div>
 
 <div class="grid split" style="grid-template-columns:1.3fr 1fr">
   <div class="card">
     <h3>Recent invoices <small><a href="{% url 'billing:list' %}">View all →</a></small></h3>
     <table>
-      <tr>
-        <th>Invoice</th>
-        <th>Client</th>
-        <th>Business</th>
-        <th class="r">Total</th>
-        <th>Status</th>
-      </tr>
+      <tr><th>Invoice</th><th>Client</th><th>Business</th><th class="r">Total</th><th>Status</th></tr>
       {% for inv in recent %}
       <tr class="link" onclick="location='{{ inv.get_absolute_url }}'">
         <td class="mono">{{ inv.number }}</td>
-        <td><a class="name" href="{{ inv.client.get_absolute_url }}" onclick="event.stopPropagation()">{{
-            inv.client.full_name }}</a></td>
+        <td><a class="name" href="{{ inv.client.get_absolute_url }}" onclick="event.stopPropagation()">{{ inv.client.full_name }}</a></td>
         <td>{% include "partials/biz_pill.html" with b=inv.business %}</td>
         <td class="r">${{ inv.subtotal|intcomma }}</td>
         <td>{% include "partials/status_pill.html" with s=inv.status_key label=inv.status_label %}</td>
       </tr>
-      {% empty %}<tr>
-        <td colspan="5" class="empty">No invoices yet.</td>
-      </tr>{% endfor %}
+      {% empty %}<tr><td colspan="5" class="empty">No invoices yet.</td></tr>{% endfor %}
     </table>
   </div>
 
@@ -81,30 +52,21 @@
     <div class="card">
       <h3>Collected by business</h3>
       {% for row in by_business %}
-      <div class="row" style="justify-content:space-between"><span><i class="dot"
-            style="background:{{ row.business.color }}"></i>{{ row.business.name|cut:"Christie's " }}</span><b>${{
-          row.amount|floatformat:2|intcomma }}</b></div>
-      <div class="bar">
-        <div style="width:{{ row.pct }}%;background:{{ row.business.color }}"></div>
-      </div>
+      <div class="row" style="justify-content:space-between"><span><i class="dot" style="background:{{ row.business.color }}"></i>{{ row.business.name|cut:"Christie's " }}</span><b>${{ row.amount|floatformat:2|intcomma }}</b></div>
+      <div class="bar"><div style="width:{{ row.pct }}%;background:{{ row.business.color }}"></div></div>
       {% endfor %}
     </div>
     <div class="card">
-      <h3>Confirm manual payments {% if pending %}<span class="pill p-pending">{{ pending|length }} pending</span>{%
-        endif %}</h3>
+      <h3>Confirm manual payments {% if pending %}<span class="pill p-pending">{{ pending|length }} pending</span>{% endif %}</h3>
       {% for p in pending %}
       <div class="queue-item">
         <div>
-          <b>{{ p.invoice.client.full_name }}</b> · <a class="mono" href="{{ p.invoice.get_absolute_url }}">{{
-            p.invoice.number }}</a>
-          <div class="sub">{{ p.get_method_display }} · ${{ p.amount }} · memo “{{ p.external_ref }}” · {{
-            p.created_at|naturaltime }}</div>
+          <b>{{ p.invoice.client.full_name }}</b> · <a class="mono" href="{{ p.invoice.get_absolute_url }}">{{ p.invoice.number }}</a>
+          <div class="sub">{{ p.get_method_display }} · ${{ p.amount }} · memo “{{ p.external_ref }}” · {{ p.created_at|naturaltime }}</div>
         </div>
         <div class="row">
-          <form method="post" action="{% url 'payments:confirm' p.pk %}">{% csrf_token %}<input type="hidden"
-              name="next" value="{{ request.get_full_path }}"><button class="btn sm ok">Confirm</button></form>
-          <form method="post" action="{% url 'payments:reject' p.pk %}">{% csrf_token %}<input type="hidden" name="next"
-              value="{{ request.get_full_path }}"><button class="btn sm">Reject</button></form>
+          <form method="post" action="{% url 'payments:confirm' p.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn sm ok">Confirm</button></form>
+          <form method="post" action="{% url 'payments:reject' p.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn sm">Reject</button></form>
         </div>
       </div>
       {% empty %}<div class="empty">Nothing waiting. 🎉</div>{% endfor %}

@@ -3,37 +3,22 @@
 {% block title %}Payments{% endblock %}
 {% block content %}
 <div class="top">
-  <div>
-    <div class="crumb">Card payments confirm automatically · manual ones need your OK</div>
-    <h1>Payments</h1>
-  </div>
+  <div><div class="crumb">Card payments confirm automatically · manual ones need your OK</div><h1>Payments</h1></div>
   <a class="btn" href="{% url 'payments:export' %}?{{ request.GET.urlencode }}">Export CSV</a>
 </div>
 <div class="card">
   <form class="search" method="get" style="margin-bottom:12px">
     <select name="business" onchange="this.form.submit()">
       <option value="">All businesses</option>
-      {% for b in businesses %}<option value="{{ b.code }}" {% if business_code==b.code %}selected{% endif %}>{{ b.name
-        }}</option>{% endfor %}
+      {% for b in businesses %}<option value="{{ b.code }}" {% if business_code == b.code %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
     </select>
     <select name="status" onchange="this.form.submit()">
       <option value="">Any status</option>
-      {% for value, label in statuses %}<option value="{{ value }}" {% if status==value %}selected{% endif %}>{{ label
-        }}</option>{% endfor %}
+      {% for value, label in statuses %}<option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
     </select>
   </form>
   <table>
-    <tr>
-      <th>Invoice</th>
-      <th>Client</th>
-      <th>Business</th>
-      <th>Method</th>
-      <th class="r">Amount</th>
-      <th class="r">Fee</th>
-      <th>Status</th>
-      <th>When</th>
-      <th></th>
-    </tr>
+    <tr><th>Invoice</th><th>Client</th><th>Business</th><th>Method</th><th class="r">Amount</th><th class="r">Fee</th><th>Status</th><th>When</th><th></th></tr>
     {% for p in payments %}
     <tr>
       <td><a class="mono" href="{{ p.invoice.get_absolute_url }}">{{ p.invoice.number }}</a></td>
@@ -45,15 +30,11 @@
       <td>{% include "partials/status_pill.html" with s=p.status label=p.get_status_display %}</td>
       <td>{{ p.created_at|naturaltime }}</td>
       <td>{% if p.status == "pending" and p.is_manual %}<div class="row">
-          <form method="post" action="{% url 'payments:confirm' p.pk %}">{% csrf_token %}<input type="hidden"
-              name="next" value="{{ request.get_full_path }}"><button class="btn sm ok">Confirm</button></form>
-          <form method="post" action="{% url 'payments:reject' p.pk %}">{% csrf_token %}<input type="hidden" name="next"
-              value="{{ request.get_full_path }}"><button class="btn sm">Reject</button></form>
-        </div>{% endif %}</td>
+        <form method="post" action="{% url 'payments:confirm' p.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn sm ok">Confirm</button></form>
+        <form method="post" action="{% url 'payments:reject' p.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn sm">Reject</button></form>
+      </div>{% endif %}</td>
     </tr>
-    {% empty %}<tr>
-      <td colspan="9" class="empty">No payments yet.</td>
-    </tr>{% endfor %}
+    {% empty %}<tr><td colspan="9" class="empty">No payments yet.</td></tr>{% endfor %}
   </table>
 </div>
 {% endblock %}

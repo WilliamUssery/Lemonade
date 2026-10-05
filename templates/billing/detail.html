@@ -10,17 +10,14 @@
   </div>
   <div class="row">
     {% if invoice.is_editable %}
-    <a class="btn" href="{% url 'billing:edit' invoice.pk %}">Edit</a>
-    <form method="post" action="{% url 'billing:send' invoice.pk %}">{% csrf_token %}<button class="btn pri">Send to
-        client</button></form>
+      <a class="btn" href="{% url 'billing:edit' invoice.pk %}">Edit</a>
+      <form method="post" action="{% url 'billing:send' invoice.pk %}">{% csrf_token %}<button class="btn pri">Send to client</button></form>
     {% endif %}
     {% if invoice.status == "sent" %}
-    <a class="btn" href="{{ invoice.get_pay_url }}" target="_blank">Open pay page ↗</a>
+      <a class="btn" href="{{ invoice.get_pay_url }}" target="_blank">Open pay page ↗</a>
     {% endif %}
     {% if invoice.status == "draft" or invoice.status == "sent" %}
-    <form method="post" action="{% url 'billing:void' invoice.pk %}"
-      onsubmit="return confirm('Void {{ invoice.number }}? This cannot be undone.')">{% csrf_token %}<button
-        class="btn danger">Void</button></form>
+      <form method="post" action="{% url 'billing:void' invoice.pk %}" onsubmit="return confirm('Void {{ invoice.number }}? This cannot be undone.')">{% csrf_token %}<button class="btn danger">Void</button></form>
     {% endif %}
   </div>
 </div>
@@ -31,78 +28,47 @@
       <div class="row" style="justify-content:space-between;align-items:flex-start">
         <div>
           <div class="muted" style="font-size:12px">BILL TO</div>
-          <a class="name" style="font-weight:700;font-size:16px" href="{{ invoice.client.get_absolute_url }}">{{
-            invoice.client.full_name }}</a>
-          <div class="muted">{{ invoice.client.email }}{% if invoice.client.phone %} · {{ invoice.client.phone }}{%
-            endif %}</div>
+          <a class="name" style="font-weight:700;font-size:16px" href="{{ invoice.client.get_absolute_url }}">{{ invoice.client.full_name }}</a>
+          <div class="muted">{{ invoice.client.email }}{% if invoice.client.phone %} · {{ invoice.client.phone }}{% endif %}</div>
         </div>
         <div class="r">
           {% include "partials/biz_pill.html" with b=invoice.business %}
-          <div class="muted" style="margin-top:6px;font-size:13px">Issued {{ invoice.issue_date|date:"M j, Y" }} · Due
-            {{ invoice.due_date|date:"M j, Y" }}</div>
+          <div class="muted" style="margin-top:6px;font-size:13px">Issued {{ invoice.issue_date|date:"M j, Y" }} · Due {{ invoice.due_date|date:"M j, Y" }}</div>
         </div>
       </div>
     </div>
     <div class="card">
       <h3>Line items</h3>
       <table>
-        <tr>
-          <th>Description</th>
-          <th class="r">Qty</th>
-          <th class="r">Unit price</th>
-          <th class="r">Amount</th>
-        </tr>
+        <tr><th>Description</th><th class="r">Qty</th><th class="r">Unit price</th><th class="r">Amount</th></tr>
         {% for item in invoice.items.all %}
-        <tr>
-          <td>{{ item.description }}</td>
-          <td class="r">{{ item.quantity|floatformat:"-2" }}</td>
-          <td class="r">${{ item.unit_price }}</td>
-          <td class="r"><b>${{ item.amount|intcomma }}</b></td>
-        </tr>
+        <tr><td>{{ item.description }}</td><td class="r">{{ item.quantity|floatformat:"-2" }}</td><td class="r">${{ item.unit_price }}</td><td class="r"><b>${{ item.amount|intcomma }}</b></td></tr>
         {% endfor %}
       </table>
       <div style="max-width:300px;margin:14px 0 0 auto">
         <div class="sum-row"><span>Subtotal</span><span>${{ invoice.subtotal|intcomma }}</span></div>
-        <div class="sum-row muted"><span>If paid by card (+3.5%)</span><span>${{ invoice.card_total|intcomma }}</span>
-        </div>
+        <div class="sum-row muted"><span>If paid by card (+3.5%)</span><span>${{ invoice.card_total|intcomma }}</span></div>
         <div class="sum-row sum-total"><span>Total due</span><span>${{ invoice.subtotal|intcomma }}</span></div>
       </div>
-      {% if invoice.message %}<div class="muted" style="margin-top:12px;font-size:13px">Message: “{{ invoice.message }}”
-      </div>{% endif %}
+      {% if invoice.message %}<div class="muted" style="margin-top:12px;font-size:13px">Message: “{{ invoice.message }}”</div>{% endif %}
     </div>
     <div class="card">
       <h3>Payments</h3>
       <table>
-        <tr>
-          <th>Method</th>
-          <th class="r">Amount</th>
-          <th class="r">Fee</th>
-          <th>Reference</th>
-          <th>Status</th>
-          <th>When</th>
-          <th></th>
-        </tr>
+        <tr><th>Method</th><th class="r">Amount</th><th class="r">Fee</th><th>Reference</th><th>Status</th><th>When</th><th></th></tr>
         {% for p in invoice.payments.all %}
         <tr>
-          <td>{{ p.get_method_display }}</td>
-          <td class="r">${{ p.amount }}</td>
-          <td class="r">${{ p.fee }}</td>
+          <td>{{ p.get_method_display }}</td><td class="r">${{ p.amount }}</td><td class="r">${{ p.fee }}</td>
           <td class="mono">{{ p.external_ref|default:"—"|truncatechars:22 }}</td>
           <td>{% include "partials/status_pill.html" with s=p.status label=p.get_status_display %}</td>
-          <td>{{ p.created_at|naturaltime }}{% if p.confirmed_by %}<div class="muted" style="font-size:11.5px">confirmed
-              by {{ p.confirmed_by.get_full_name|default:p.confirmed_by.username }}</div>{% endif %}</td>
+          <td>{{ p.created_at|naturaltime }}{% if p.confirmed_by %}<div class="muted" style="font-size:11.5px">confirmed by {{ p.confirmed_by.get_full_name|default:p.confirmed_by.username }}</div>{% endif %}</td>
           <td>{% if p.status == "pending" and p.is_manual %}
             <div class="row">
-              <form method="post" action="{% url 'payments:confirm' p.pk %}">{% csrf_token %}<input type="hidden"
-                  name="next" value="{{ request.path }}"><button class="btn sm ok">Confirm</button></form>
-              <form method="post" action="{% url 'payments:reject' p.pk %}">{% csrf_token %}<input type="hidden"
-                  name="next" value="{{ request.path }}"><button class="btn sm">Reject</button></form>
-            </div>{% endif %}
-          </td>
+              <form method="post" action="{% url 'payments:confirm' p.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn sm ok">Confirm</button></form>
+              <form method="post" action="{% url 'payments:reject' p.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn sm">Reject</button></form>
+            </div>{% endif %}</td>
         </tr>
-        {% empty %}<tr>
-          <td colspan="7" class="empty">No payments yet.</td>
-        </tr>{% endfor %}
+        {% empty %}<tr><td colspan="7" class="empty">No payments yet.</td></tr>{% endfor %}
       </table>
     </div>
   </div>
@@ -111,20 +77,16 @@
     <div class="card">
       <h3>Pay link</h3>
       {% if invoice.status == "draft" %}
-      <div class="muted" style="font-size:13px">The pay link goes live when you send the invoice.</div>
+        <div class="muted" style="font-size:13px">The pay link goes live when you send the invoice.</div>
       {% else %}
-      <div class="copy"><input type="text" id="pay-url" value="{{ pay_url }}" readonly><button type="button"
-          class="btn sm"
-          onclick="navigator.clipboard.writeText(document.getElementById('pay-url').value);this.textContent='Copied'">Copy</button>
-      </div>
-      <div class="muted" style="font-size:12px;margin-top:8px">Unguessable link — no login needed for the client.</div>
+        <div class="copy"><input type="text" id="pay-url" value="{{ pay_url }}" readonly><button type="button" class="btn sm" onclick="navigator.clipboard.writeText(document.getElementById('pay-url').value);this.textContent='Copied'">Copy</button></div>
+        <div class="muted" style="font-size:12px;margin-top:8px">Unguessable link — no login needed for the client.</div>
       {% endif %}
     </div>
     <div class="card">
       <h3>Timeline</h3>
       <div style="display:grid;gap:8px;font-size:13px">
-        <div>Created {{ invoice.created_at|date:"M j, g:i a" }}{% if invoice.created_by %} by {{
-          invoice.created_by.get_full_name|default:invoice.created_by.username }}{% endif %}</div>
+        <div>Created {{ invoice.created_at|date:"M j, g:i a" }}{% if invoice.created_by %} by {{ invoice.created_by.get_full_name|default:invoice.created_by.username }}{% endif %}</div>
         {% if invoice.sent_at %}<div>Sent {{ invoice.sent_at|date:"M j, g:i a" }}</div>{% endif %}
         {% if invoice.paid_at %}<div class="up">Paid {{ invoice.paid_at|date:"M j, g:i a" }}</div>{% endif %}
         {% if invoice.status == "void" %}<div class="down">Voided</div>{% endif %}
