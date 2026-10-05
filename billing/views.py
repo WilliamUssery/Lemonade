@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from clients.models import Client
@@ -17,7 +18,9 @@ def invoice_list(request):
     status = request.GET.get("status", "")
     business_code = request.GET.get("business", "")
     q = request.GET.get("q", "").strip()
-    if status:
+    if status == "overdue":
+        invoices = invoices.filter(status=Invoice.Status.SENT, due_date__lt=timezone.localdate())
+    elif status:
         invoices = invoices.filter(status=status)
     if business_code:
         invoices = invoices.filter(business__code=business_code)
@@ -30,7 +33,7 @@ def invoice_list(request):
         "status": status,
         "business_code": business_code,
         "q": q,
-        "statuses": Invoice.Status.choices,
+        "statuses": Invoice.Status.choices + [("overdue", "Overdue")],
         "businesses": Business.objects.all(),
     })
 

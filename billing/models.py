@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 
 CENT = Decimal("0.01")
 
@@ -136,6 +137,19 @@ class Invoice(models.Model):
     @property
     def is_editable(self):
         return self.status == self.Status.DRAFT
+
+    @property
+    def is_overdue(self):
+        return self.status == self.Status.SENT and self.due_date < timezone.localdate()
+
+    @property
+    def status_key(self):
+        """CSS key for the status pill; 'overdue' wins over 'sent'."""
+        return "overdue" if self.is_overdue else self.status
+
+    @property
+    def status_label(self):
+        return "Overdue" if self.is_overdue else self.get_status_display()
 
     @property
     def is_payable(self):

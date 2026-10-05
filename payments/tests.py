@@ -107,3 +107,28 @@ class PaymentFlowTests(TestCase):
         response = self.client.post(reverse("payments:square_webhook"), b"{}", content_type="application/json",
                                     HTTP_X_SQUARE_HMACSHA256_SIGNATURE="forged")
         self.assertEqual(response.status_code, 403)
+
+
+class RejectAndVoidTests(TestCase):
+    def setUp(self):
+        self.cleaning, self.tutoring, self.deep, self.oven, self.math, self.sarah = make_fixture()
+        self.invoice = InvoiceService.create_invoice(
+            client=self.sarah, business=self.cleaning, issue_date=TODAY,
+            due_date=TODAY + datetime.timedelta(days=14), items=[{"service": self.deep}])
+        InvoiceService.send(self.invoice)
+        self.user = get_user_model().objects.create_user("christie", password="pw-12345")
+        self.client.force_login(self.user)
+
+    def test_reject_leaves_invoice_sent(self):
+        payment = ManualGateway("zelle").start(self.invoice)
+        self.client.post(reverse("payments:reject", args=[payment.pk]))
+        payment.refresh_from_db()
+        self.invoice.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.REJECTED)
+        self.assertEqual(self.invoice.status, Invoice.Status.SENT)
+
+    def test_voided_invoice_cannot_be_paid(self):
+        self.client.post(reverse("billing:void", args=[self.invoice.pk]))
+        self.client.logout()
+        self.client.post(reverse("portal:start", args=[self.invoice.pay_token]), {"method": "zelle"})
+        self.assertFalse(Payment.objects.exists())

@@ -29,7 +29,7 @@
       <td>{{ inv.issue_date|date:"M d" }}</td>
       <td>{{ inv.due_date|date:"M d" }}</td>
       <td class="r">${{ inv.subtotal|intcomma }}</td>
-      <td>{% include "partials/status_pill.html" with s=inv.status label=inv.get_status_display %}</td>
+      <td>{% include "partials/status_pill.html" with s=inv.status_key label=inv.status_label %}</td>
     </tr>
     {% empty %}<tr><td colspan="7" class="empty">No invoices match.</td></tr>{% endfor %}
   </table>

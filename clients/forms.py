@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 
 from billing.models import Business
 
@@ -12,6 +13,10 @@ class ClientForm(forms.ModelForm):
         label="Businesses",
         help_text="Which of Christie's businesses this client uses.",
     )
+    confirm_duplicate = forms.BooleanField(
+        required=False,
+        label="Save anyway, this is a different person",
+    )
 
     class Meta:
         model = Client
@@ -20,6 +25,7 @@ class ClientForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.duplicates = []
         if self.instance.pk:
             self.fields["business_links"].initial = self.instance.businesses.all()
 
@@ -35,6 +41,27 @@ class ClientForm(forms.ModelForm):
         if len(digits) != 10:
             raise forms.ValidationError("Enter a 10-digit US phone number.")
         return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
+
+    def clean(self):
+        cleaned = super().clean()
+        self.duplicates = self.find_duplicates(cleaned)
+        if self.duplicates and not cleaned.get("confirm_duplicate"):
+            names = ", ".join(c.full_name for c in self.duplicates)
+            raise forms.ValidationError(
+                f"Possible duplicate of {names}. Tick 'Save anyway' if this is a different person."
+            )
+        return cleaned
+
+    def find_duplicates(self, cleaned):
+        """Clients with the same phone number or the same first + last name."""
+        match = Q()
+        if cleaned.get("phone"):
+            match |= Q(phone=cleaned["phone"])
+        if cleaned.get("first_name") and cleaned.get("last_name"):
+            match |= Q(first_name__iexact=cleaned["first_name"], last_name__iexact=cleaned["last_name"])
+        if not match:
+            return []
+        return list(Client.objects.filter(match).exclude(pk=self.instance.pk))
 
     def save(self, commit=True):
         client = super().save(commit=commit)

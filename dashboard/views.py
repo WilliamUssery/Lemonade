@@ -50,6 +50,7 @@ def index(request):
         change = round((collected_now - collected_prev) / collected_prev * 100)
 
     open_invoices = invoices.filter(status=Invoice.Status.SENT)
+    overdue_invoices = open_invoices.filter(due_date__lt=timezone.localdate())
     month_invoices = invoices.filter(issue_date__gte=start, issue_date__lt=end).exclude(status=Invoice.Status.DRAFT)
 
     by_business = []
@@ -78,6 +79,8 @@ def index(request):
         "change": change,
         "outstanding": sum((i.subtotal for i in open_invoices), Decimal("0")),
         "open_count": open_invoices.count(),
+        "overdue_count": overdue_invoices.count(),
+        "overdue_total": sum((i.subtotal for i in overdue_invoices), Decimal("0")),
         "sent_count": month_invoices.count(),
         "sent_breakdown": [{"business": b, "count": month_invoices.filter(business=b).count()} for b in businesses],
         "pending": payments.filter(status=Payment.Status.PENDING).exclude(method=Payment.Method.CARD),

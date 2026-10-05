@@ -83,6 +83,7 @@ td a.name { font-weight: 600; } td a.name:hover { text-decoration: underline; }
 .p-paid, .p-confirmed { background: var(--okbg); color: var(--ok); }
 .p-void, .p-rejected { background: var(--errbg); color: var(--err); }
 .p-pending { background: var(--warnbg); color: var(--warn); }
+.p-overdue { background: var(--errbg); color: var(--err); }
 
 .queue-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0;
   border-bottom: 1px solid #F1F2F5; }
