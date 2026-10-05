@@ -46,3 +46,30 @@ class Phase2Tests(TestCase):
         response = self.client.get(reverse("billing:list"), {"status": "overdue"})
         self.assertContains(response, late.number)
         self.assertNotContains(response, on_time.number)
+
+    # --- Part 2: CSV export ----------------------------------------------
+    def rows(self, response):
+        return list(csv.reader(io.StringIO(response.content.decode("utf-8-sig"))))
+
+    def test_invoice_csv_respects_business_filter(self):
+        cl = self.invoice()
+        tu = self.invoice(business=self.tutoring, service=self.math)
+        PaymentGateway.confirm(ManualGateway("zelle").start(cl), user=self.user)
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("billing:export"), {"business": "CL"})
+        self.assertEqual(response["Content-Type"], "text/csv")
+        rows = self.rows(response)
+        self.assertEqual(rows[0][0], "Invoice")
+        self.assertEqual([r[0] for r in rows[1:]], [cl.number])
+        self.assertEqual(rows[1][-1], "160.00")
+        self.assertNotIn(tu.number, response.content.decode())
+
+    def test_payment_csv(self):
+        PaymentGateway.confirm(ManualGateway("zelle").start(self.invoice()), user=self.user)
+        self.client.force_login(self.user)
+        rows = self.rows(self.client.get(reverse("payments:export")))
+        self.assertEqual(rows[1][4:8], ["Zelle", "160.00", "0.00", "Confirmed"])
+
+    def test_exports_require_login(self):
+        for name in ["billing:export", "payments:export"]:
+            self.assertEqual(self.client.get(reverse(name)).status_code, 302)

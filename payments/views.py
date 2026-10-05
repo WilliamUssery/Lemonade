@@ -1,3 +1,4 @@
+import csv
 import json
 import logging
 
@@ -25,8 +26,7 @@ def _back(request, default="dashboard:index"):
     return redirect(default)
 
 
-@login_required
-def payment_list(request):
+def _filter_payments(request):
     payments = Payment.objects.select_related("invoice__client", "invoice__business", "confirmed_by")
     status = request.GET.get("status", "")
     business_code = request.GET.get("business", "")
@@ -34,6 +34,12 @@ def payment_list(request):
         payments = payments.filter(status=status)
     if business_code:
         payments = payments.filter(invoice__business__code=business_code)
+    return payments, status, business_code
+
+
+@login_required
+def payment_list(request):
+    payments, status, business_code = _filter_payments(request)
     return render(request, "payments/list.html", {
         "payments": payments,
         "status": status,
@@ -92,3 +98,23 @@ def simulate_checkout(request, pk):
             PaymentGateway.reject(payment)
         return redirect("portal:done", token=invoice.pay_token)
     return render(request, "payments/simulate.html", {"payment": payment, "invoice": invoice})
+
+
+@login_required
+def payment_export(request):
+    payments, *_ = _filter_payments(request)
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="dualledger-payments.csv"'
+    response.write("\ufeff")
+    writer = csv.writer(response)
+    writer.writerow(["Created", "Invoice", "Business", "Client", "Method", "Amount", "Fee",
+                     "Status", "Reference", "Confirmed by", "Confirmed at"])
+    for p in payments:
+        writer.writerow([
+            p.created_at.strftime("%Y-%m-%d %H:%M"), p.invoice.number, p.invoice.business.name,
+            p.invoice.client.full_name, p.get_method_display(), p.amount, p.fee,
+            p.get_status_display(), p.external_ref,
+            p.confirmed_by.username if p.confirmed_by else "",
+            p.confirmed_at.strftime("%Y-%m-%d %H:%M") if p.confirmed_at else "",
+        ])
+    return response

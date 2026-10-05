@@ -1,6 +1,10 @@
+import csv
+from decimal import Decimal
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -12,9 +16,9 @@ from .models import Business, Invoice, Service
 from .services import InvalidTransition, InvoiceService
 
 
-@login_required
-def invoice_list(request):
-    invoices = Invoice.objects.select_related("client", "business").prefetch_related("items")
+def _filter_invoices(request):
+    """Shared by the list page and the CSV export so both show the same rows."""
+    invoices = Invoice.objects.select_related("client", "business").prefetch_related("items", "payments")
     status = request.GET.get("status", "")
     business_code = request.GET.get("business", "")
     q = request.GET.get("q", "").strip()
@@ -28,6 +32,12 @@ def invoice_list(request):
         invoices = invoices.filter(
             Q(number__icontains=q) | Q(client__first_name__icontains=q) | Q(client__last_name__icontains=q)
         )
+    return invoices, status, business_code, q
+
+
+@login_required
+def invoice_list(request):
+    invoices, status, business_code, q = _filter_invoices(request)
     return render(request, "billing/list.html", {
         "invoices": invoices,
         "status": status,
@@ -174,3 +184,23 @@ def invoice_void(request, pk):
     except InvalidTransition as exc:
         messages.error(request, str(exc))
     return redirect(invoice)
+
+
+@login_required
+def invoice_export(request):
+    invoices, *_ = _filter_invoices(request)
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="dualledger-invoices.csv"'
+    response.write("\ufeff")  # BOM so Excel reads names with accents correctly
+    writer = csv.writer(response)
+    writer.writerow(["Invoice", "Business", "Client", "Email", "Issued", "Due", "Status",
+                     "Subtotal", "Card fee charged", "Amount paid"])
+    for inv in invoices:
+        confirmed = [p for p in inv.payments.all() if p.status == "confirmed"]
+        writer.writerow([
+            inv.number, inv.business.name, inv.client.full_name, inv.client.email,
+            inv.issue_date, inv.due_date, inv.status_label, inv.subtotal,
+            sum((p.fee for p in confirmed), Decimal("0")),
+            sum((p.amount for p in confirmed), Decimal("0")),
+        ])
+    return response

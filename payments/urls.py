@@ -6,6 +6,7 @@ app_name = "payments"
 
 urlpatterns = [
     path("", views.payment_list, name="list"),
+    path("export.csv", views.payment_export, name="export"),
     path("<int:pk>/confirm/", views.payment_confirm, name="confirm"),
     path("<int:pk>/reject/", views.payment_reject, name="reject"),
     path("square/webhook/", views.square_webhook, name="square_webhook"),
