@@ -73,3 +73,30 @@ class Phase2Tests(TestCase):
     def test_exports_require_login(self):
         for name in ["billing:export", "payments:export"]:
             self.assertEqual(self.client.get(reverse(name)).status_code, 302)
+
+    # --- Part 3: reminders -----------------------------------------------
+    def test_reminder_email_has_pay_link(self):
+        inv = self.invoice()
+        mail.outbox.clear()
+        InvoiceService.remind(inv)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(str(inv.pay_token), mail.outbox[0].body)
+        self.assertIsNotNone(Invoice.objects.get(pk=inv.pk).last_reminded_at)
+
+    def test_cannot_remind_draft_or_paid(self):
+        with self.assertRaises(InvalidTransition):
+            InvoiceService.remind(self.invoice(send=False))
+        paid = self.invoice()
+        PaymentGateway.confirm(ManualGateway("zelle").start(paid), user=self.user)
+        with self.assertRaises(InvalidTransition):
+            InvoiceService.remind(Invoice.objects.get(pk=paid.pk))
+
+    def test_send_reminders_command_skips_recent_and_not_late(self):
+        late = self.invoice(due_in_days=-5)
+        self.invoice(due_in_days=-1)  # only 1 day late
+        mail.outbox.clear()
+        call_command("send_reminders", stdout=io.StringIO())
+        self.assertEqual([m.to for m in mail.outbox], [[self.sarah.email]])
+        self.assertIn(late.number, mail.outbox[0].subject)
+        call_command("send_reminders", stdout=io.StringIO())  # just reminded: no repeat
+        self.assertEqual(len(mail.outbox), 1)

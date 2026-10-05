@@ -15,6 +15,8 @@
     {% endif %}
     {% if invoice.status == "sent" %}
       <a class="btn" href="{{ invoice.get_pay_url }}" target="_blank">Open pay page ↗</a>
+      <form method="post" action="{% url 'billing:resend' invoice.pk %}">{% csrf_token %}<button class="btn">Resend invoice</button></form>
+      <form method="post" action="{% url 'billing:remind' invoice.pk %}">{% csrf_token %}<button class="btn">Send reminder</button></form>
     {% endif %}
     {% if invoice.status == "draft" or invoice.status == "sent" %}
       <form method="post" action="{% url 'billing:void' invoice.pk %}" onsubmit="return confirm('Void {{ invoice.number }}? This cannot be undone.')">{% csrf_token %}<button class="btn danger">Void</button></form>
@@ -88,6 +90,7 @@
       <div style="display:grid;gap:8px;font-size:13px">
         <div>Created {{ invoice.created_at|date:"M j, g:i a" }}{% if invoice.created_by %} by {{ invoice.created_by.get_full_name|default:invoice.created_by.username }}{% endif %}</div>
         {% if invoice.sent_at %}<div>Sent {{ invoice.sent_at|date:"M j, g:i a" }}</div>{% endif %}
+        {% if invoice.last_reminded_at %}<div>Last reminder {{ invoice.last_reminded_at|date:"M j, g:i a" }}</div>{% endif %}
         {% if invoice.paid_at %}<div class="up">Paid {{ invoice.paid_at|date:"M j, g:i a" }}</div>{% endif %}
         {% if invoice.status == "void" %}<div class="down">Voided</div>{% endif %}
       </div>

@@ -187,6 +187,30 @@ def invoice_void(request, pk):
 
 
 @login_required
+@require_POST
+def invoice_resend(request, pk):
+    invoice = get_object_or_404(Invoice, pk=pk)
+    try:
+        InvoiceService.resend(invoice)
+        messages.success(request, f"{invoice.number} resent to {invoice.client.email}.")
+    except InvalidTransition as exc:
+        messages.error(request, str(exc))
+    return redirect(invoice)
+
+
+@login_required
+@require_POST
+def invoice_remind(request, pk):
+    invoice = get_object_or_404(Invoice, pk=pk)
+    try:
+        InvoiceService.remind(invoice)
+        messages.success(request, f"Reminder for {invoice.number} sent to {invoice.client.email}.")
+    except InvalidTransition as exc:
+        messages.error(request, str(exc))
+    return redirect(invoice)
+
+
+@login_required
 def invoice_export(request):
     invoices, *_ = _filter_invoices(request)
     response = HttpResponse(content_type="text/csv")

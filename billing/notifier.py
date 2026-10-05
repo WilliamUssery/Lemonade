@@ -29,6 +29,14 @@ class Notifier:
         )
 
     @classmethod
+    def send_reminder(cls, invoice):
+        cls._send(
+            f"Reminder: invoice {invoice.number} from {invoice.business.name} is due",
+            "emails/reminder.txt",
+            invoice,
+        )
+
+    @classmethod
     def send_receipt(cls, invoice):
         payment = invoice.payments.filter(status="confirmed").first()
         cls._send(

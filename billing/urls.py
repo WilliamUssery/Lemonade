@@ -12,4 +12,6 @@ urlpatterns = [
     path("<int:pk>/edit/", views.invoice_edit, name="edit"),
     path("<int:pk>/send/", views.invoice_send, name="send"),
     path("<int:pk>/void/", views.invoice_void, name="void"),
+    path("<int:pk>/resend/", views.invoice_resend, name="resend"),
+    path("<int:pk>/remind/", views.invoice_remind, name="remind"),
 ]

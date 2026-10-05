@@ -1,0 +1,13 @@
+{% autoescape off %}Hi {{ invoice.client.first_name }},
+
+This is a friendly reminder that invoice {{ invoice.number }} from {{ invoice.business.name }} is still open.
+
+Amount due: ${{ invoice.subtotal }}
+Due date: {{ invoice.due_date|date:"M j, Y" }}{% if invoice.is_overdue %} (past due){% endif %}
+
+Pay now (no login needed):
+{{ pay_url }}
+
+If you've already paid, thank you, and please ignore this email.
+
+{{ invoice.business.name }}{% endautoescape %}

@@ -90,6 +90,26 @@ class InvoiceService:
         return invoice
 
     @classmethod
+    def resend(cls, invoice):
+        from .notifier import Notifier
+
+        if invoice.status != Invoice.Status.SENT:
+            raise InvalidTransition("Only sent, unpaid invoices can be resent.")
+        Notifier.send_invoice(invoice)
+        return invoice
+
+    @classmethod
+    def remind(cls, invoice):
+        from .notifier import Notifier
+
+        if invoice.status != Invoice.Status.SENT:
+            raise InvalidTransition("Only sent, unpaid invoices can get a reminder.")
+        Notifier.send_reminder(invoice)
+        invoice.last_reminded_at = timezone.now()
+        invoice.save(update_fields=["last_reminded_at"])
+        return invoice
+
+    @classmethod
     def void(cls, invoice):
         return cls.transition(invoice, Invoice.Status.VOID)
 

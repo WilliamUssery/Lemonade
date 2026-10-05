@@ -109,6 +109,7 @@ class Invoice(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     sent_at = models.DateTimeField(null=True, blank=True)
     paid_at = models.DateTimeField(null=True, blank=True)
+    last_reminded_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-issue_date", "-id"]
