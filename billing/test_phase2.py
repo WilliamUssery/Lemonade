@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from payments.gateways import ManualGateway, PaymentGateway
 
-from .models import Invoice
+from .models import Invoice, RecurringInvoice, RecurringItem, add_month
 from .services import InvalidTransition, InvoiceService
 from .tests import make_fixture
 
@@ -100,3 +100,30 @@ class Phase2Tests(TestCase):
         self.assertIn(late.number, mail.outbox[0].subject)
         call_command("send_reminders", stdout=io.StringIO())  # just reminded: no repeat
         self.assertEqual(len(mail.outbox), 1)
+
+    # --- Part 5: recurring -----------------------------------------------
+    def schedule(self, **kw):
+        s = RecurringInvoice.objects.create(client=self.sarah, business=self.cleaning,
+                                            next_run=self.today, **kw)
+        RecurringItem.objects.create(schedule=s, service=self.deep, quantity=1)
+        return s
+
+    def test_run_recurring_creates_one_invoice_and_advances(self):
+        s = self.schedule()
+        call_command("run_recurring", stdout=io.StringIO())
+        inv = Invoice.objects.get()
+        self.assertEqual(inv.status, Invoice.Status.SENT)
+        self.assertEqual(inv.subtotal, Decimal("160.00"))
+        s.refresh_from_db()
+        self.assertEqual(s.next_run, self.today + datetime.timedelta(weeks=1))
+        call_command("run_recurring", stdout=io.StringIO())  # not due again yet
+        self.assertEqual(Invoice.objects.count(), 1)
+
+    def test_paused_schedule_is_skipped(self):
+        self.schedule(active=False)
+        call_command("run_recurring", stdout=io.StringIO())
+        self.assertEqual(Invoice.objects.count(), 0)
+
+    def test_add_month_clamps_to_month_end(self):
+        self.assertEqual(add_month(datetime.date(2026, 1, 31)), datetime.date(2026, 2, 28))
+        self.assertEqual(add_month(datetime.date(2026, 12, 15)), datetime.date(2027, 1, 15))

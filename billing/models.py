@@ -1,3 +1,5 @@
+import calendar
+import datetime
 import uuid
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -175,3 +177,58 @@ class InvoiceItem(models.Model):
     @property
     def amount(self):
         return money(self.quantity * self.unit_price)
+
+
+def add_month(day):
+    """Same day next month, clamped to the month's last day (Jan 31 -> Feb 28)."""
+    year, month = day.year + day.month // 12, day.month % 12 + 1
+    return day.replace(year=year, month=month, day=min(day.day, calendar.monthrange(year, month)[1]))
+
+
+class RecurringInvoice(models.Model):
+    """A schedule that creates and sends the same invoice on a regular basis."""
+
+    class Frequency(models.TextChoices):
+        WEEKLY = "weekly", "Weekly"
+        BIWEEKLY = "biweekly", "Every 2 weeks"
+        MONTHLY = "monthly", "Monthly"
+
+    client = models.ForeignKey("clients.Client", on_delete=models.CASCADE, related_name="schedules")
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="schedules")
+    frequency = models.CharField(max_length=8, choices=Frequency.choices, default=Frequency.WEEKLY)
+    next_run = models.DateField(help_text="Date the next invoice is created and sent")
+    days_until_due = models.PositiveIntegerField(default=7)
+    message = models.TextField(blank=True, help_text="Optional note shown to the client")
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["next_run"]
+
+    def __str__(self):
+        return f"{self.client} · {self.business} · {self.get_frequency_display()}"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if self.client_id and self.business_id and not self.client.businesses.filter(pk=self.business_id).exists():
+            raise ValidationError(f"{self.client} is not a client of {self.business}.")
+
+    def advance(self):
+        if self.frequency == self.Frequency.WEEKLY:
+            self.next_run += datetime.timedelta(weeks=1)
+        elif self.frequency == self.Frequency.BIWEEKLY:
+            self.next_run += datetime.timedelta(weeks=2)
+        else:
+            self.next_run = add_month(self.next_run)
+        self.save(update_fields=["next_run"])
+
+
+class RecurringItem(models.Model):
+    schedule = models.ForeignKey(RecurringInvoice, on_delete=models.CASCADE, related_name="items")
+    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    quantity = models.DecimalField(max_digits=7, decimal_places=2, default=1,
+                                   validators=[MinValueValidator(Decimal("0.01"))])
+
+    def __str__(self):
+        return f"{self.service.name} x {self.quantity}"

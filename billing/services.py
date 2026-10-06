@@ -1,4 +1,6 @@
 """Business logic for invoices, kept out of views so it can be tested directly."""
+import datetime
+
 from django.db import transaction
 from django.utils import timezone
 
@@ -112,6 +114,23 @@ class InvoiceService:
     @classmethod
     def void(cls, invoice):
         return cls.transition(invoice, Invoice.Status.VOID)
+
+    @classmethod
+    @transaction.atomic
+    def run_schedule(cls, schedule, today):
+        """Create and send one invoice from a RecurringInvoice, then move it to the next date.
+        Prices come from each service's current rate."""
+        invoice = cls.create_invoice(
+            client=schedule.client,
+            business=schedule.business,
+            issue_date=today,
+            due_date=today + datetime.timedelta(days=schedule.days_until_due),
+            items=[{"service": i.service, "quantity": i.quantity} for i in schedule.items.all()],
+            message=schedule.message,
+        )
+        cls.send(invoice)
+        schedule.advance()
+        return invoice
 
     @classmethod
     def mark_paid(cls, invoice):

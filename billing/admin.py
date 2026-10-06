@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from payments.models import Payment
 
-from .models import Business, Invoice, InvoiceItem, Service
+from .models import Business, Invoice, InvoiceItem, RecurringInvoice, RecurringItem, Service
 
 
 class ServiceInline(admin.TabularInline):
@@ -50,3 +50,16 @@ class InvoiceAdmin(admin.ModelAdmin):
     readonly_fields = ("number", "pay_token", "created_by", "created_at", "sent_at", "paid_at")
     date_hierarchy = "issue_date"
     inlines = [InvoiceItemInline, PaymentInline]
+
+
+class RecurringItemInline(admin.TabularInline):
+    model = RecurringItem
+    extra = 1
+
+
+@admin.register(RecurringInvoice)
+class RecurringInvoiceAdmin(admin.ModelAdmin):
+    list_display = ("client", "business", "frequency", "next_run", "active")
+    list_filter = ("business", "frequency", "active")
+    list_editable = ("next_run", "active")
+    inlines = [RecurringItemInline]
