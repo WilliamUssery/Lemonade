@@ -82,13 +82,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# SQLite for development. Production uses PostgreSQL via DATABASE_URL.
+# SQLite for development. Production uses Supabase Postgres via DATABASE_URL
+# (use the Session pooler URI on port 5432; the direct host is IPv6-only).
 DATABASES = {
     "default": dj_database_url.config(
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",  # used when DATABASE_URL is not set
         conn_max_age=600,
+        conn_health_checks=True,
     )
 }
+if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
+    DATABASES["default"].setdefault("OPTIONS", {}).setdefault("sslmode", "require")
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
