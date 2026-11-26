@@ -47,3 +47,9 @@ and set each business's Square location ID in Admin → Businesses.
 ## Emails
 
 In development, invoice and receipt emails print in the terminal running `runserver`.
+
+## Database
+
+Local dev uses SQLite. Production uses Supabase Postgres (project `dualledger`, us-east-1).
+Set `DATABASE_URL` to the **Session pooler** URI from Supabase → Connect (the direct host
+is IPv6-only). SSL is enforced automatically. `build.sh` runs migrations on each Render deploy.
